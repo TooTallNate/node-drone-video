@@ -1,0 +1,30 @@
+{
+  "name": "drone-video",
+  "version": "0.0.0",
+  "description": "Dump AR.Drone h264 video streams with matching metadata video. Splicing/editing is left up to you.",
+  "bin": {
+    "drone-video": "bin/drone-video"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/TooTallNate/node-drone-video.git"
+  },
+  "dependencies": {
+    "ar-drone": "~0.0.5",
+    "commander": "~1.1.1",
+    "debug": "~0.7.0"
+  },
+  "keywords": [
+    "AR.Drone",
+    "h264",
+    "video",
+    "navdata",
+    "battery",
+    "metadata"
+  ],
+  "author": "Nathan Rajlich <nathan@tootallnate.net> (http://tootallnate.net)",
+  "license": "MIT"
+}

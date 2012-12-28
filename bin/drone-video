@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var arDrone = require('ar-drone');
+var program = require('commander');
+var debug = require('debug')('drone-joystick');
+
