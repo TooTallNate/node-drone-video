@@ -8,7 +8,14 @@ to do in Final Cut or whatever your preferred video editor is.
 Installation
 ------------
 
-You can install with `npm`:
+First you must install `ffmpeg` and `ffplay` with at least the `--enable-libx264`
+flag enabled. You can use Homebrew on OS X:
+
+``` bash
+$ brew install ffmpeg --with-ffplay
+```
+
+You can install the `drone-video` program with `npm`:
 
 ``` bash
 $ npm install -g drone-video
@@ -17,4 +24,4 @@ $ npm install -g drone-video
 Usage
 -----
 
-TODO
+TODO...
