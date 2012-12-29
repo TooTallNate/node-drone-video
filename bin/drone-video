@@ -209,8 +209,11 @@ function render () {
     return;
   }
 
-  var buffer = draw(navdata, width, height);
-  navdataEncoder.stdin.write(buffer);
+  debug('draw()ing navdata (%d x %d)', width, height);
+  var buffer = draw(navdata, width, height, function (err, buffer) {
+    if (err) throw err;
+    navdataEncoder.stdin.write(buffer);
+  });
 }
 
 /**
