@@ -188,7 +188,10 @@ var navdataEncoder = spawn('ffmpeg', [
 );
 
 function render () {
-  if (!navdata) return debug('render: waiting for "navdata"');
+  if (null == navdata || null == width || null == height) {
+    debug('render: waiting for "navdata"');
+    return;
+  }
 
   var buffer = draw(navdata, width, height);
   navdataEncoder.stdin.write(buffer);
