@@ -17,7 +17,8 @@
     "commander": "~1.1.1",
     "debug": "~0.7.0",
     "buffy": "~0.0.5",
-    "strftime": "~0.4.7"
+    "strftime": "~0.4.7",
+    "ms": "~0.5.0"
   },
   "keywords": [
     "AR.Drone",
