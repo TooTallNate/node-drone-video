@@ -7,19 +7,21 @@
 var fs = require('fs');
 var net = require('net');
 var path = require('path');
+var draw = require('../lib/draw');
 var arDrone = require('ar-drone');
 var strftime = require('strftime');
 var program = require('commander');
 var spawn = require('child_process').spawn;
-var Parser = require('../lib/PaVEParser');
 var debug = require('debug')('drone-joystick');
+var PaVEParser = require('ar-drone/lib/video/PaVEParser');
 
 /**
  * Do a clean shutdown upon Ctrl+C.
  */
 
-process.on('SIGINT', function () {
-  console.log('shutting down...');
+process.on('SIGINT', shutdown);
+function shutdown () {
+  console.log('\nshutting down...');
 
   // XXX: wtf, why doesn't node-ar-drone do this!!?!!
   clearInterval(client._interval);
@@ -31,7 +33,7 @@ process.on('SIGINT', function () {
   socket.destroy();
 
   videoEncoder.stdin.end();
-});
+}
 
 /**
  * Output dir format.
@@ -80,36 +82,59 @@ socket.on('connect', function () {
 });
 
 socket.on('error', function (err) {
-  console.error('socket "error" event:', err);
-  socket.destroy();
+  console.error('socket "error" event:', err.stack);
+  shutdown();
 });
 
-//var parser = new Parser();
-//parser.on('data', function (b) {
-  //console.error('%d h264 bytes', b.length);
-//});
-//socket.pipe(parser);
-//parser.pipe(process.stdout);
+var parser = new PaVEParser();
+parser.on('data', function (frame) {
+  startNavdata();
+  debug('PaVEParser "frame"', frame);
+
+  // write to the h264 video file and the mp4 encoder
+  videoH264.write(frame.payload);
+  videoEncoder.stdin.write(frame.payload);
+});
+socket.pipe(parser);
 
 /**
  * Save the raw PaVE video stream untouched as "video.raw".
  */
 
-var videoRaw = fs.createWriteStream(path.resolve(dirname, 'video.raw'));
+var videoRaw = fs.createWriteStream(path.resolve(dirname, 'video.PaVE'));
 socket.pipe(videoRaw);
 
 /**
- * Encode the "video.mp4" file.
+ * Save the parsed h264 stream as "video.h264".
+ * See the `parser` "data" event.
  */
 
+var videoH264 = fs.createWriteStream(path.resolve(dirname, 'video.h264'));
+
+/**
+ * Encode the "video.m4v" file.
+ * See the `parser` "data" event.
+ *
+ * See: https://gist.github.com/4403443
+ */
+
+var videoEncoderStderr = 2;
 var videoEncoder = spawn('ffmpeg', [
     '-f', 'h264',
+    '-analyzeduration', '0',
     '-i', '-',
-    '-f', 'mp4',
-    '-vcodec', 'copy',
     '-an',
-    path.resolve(dirname, 'video.mp4')
+    path.resolve(dirname, 'video.m4v')
   ],
-  { stdio: [ -1, -1, /*2*/-1 ] }
+  { stdio: [ -1, -1, videoEncoderStderr ] }
 );
-socket.pipe(videoEncoder.stdin);
+
+/**
+ * Called once the first PaVE frame has been parsed.
+ */
+
+var navdataStarted = false;
+function startNavdata () {
+  if (navdataStarted) return;
+  navdataStarted = true;
+}
