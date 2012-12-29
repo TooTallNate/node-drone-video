@@ -39,10 +39,9 @@ program
 
 process.on('SIGINT', shutdown);
 
-var isShutdown = false;
 function shutdown () {
-  if (isShutdown) return;
-  isShutdown = true;
+  if (shutdown.called) return;
+  shutdown.called = true;
 
   console.log('\nshutting down...');
 
@@ -76,7 +75,7 @@ function shutdown () {
 
 var dirname = strftime.strftimeUTC(program.output, new Date());
 fs.mkdirSync(dirname);
-console.log('writing video files to %j', dirname);
+console.log('Writing video files to %j', dirname);
 
 /**
  * The most recent navigation data, width and height from the drone.
@@ -92,13 +91,32 @@ var height;
  */
 
 var client  = arDrone.createClient({ ip: program.ip });
+console.log('Connecting to drone at %j', program.ip);
+
+/**
+ * Request the "demo" navdata along with the regular navdata.
+ */
+
 client.config('general:navdata_demo', 'TRUE');
-//console.log('Connecting to drone at %j', ip);
 
 client.on('navdata', function (data) {
-  //console.log(JSON.stringify(data));
+  // save a timestamp for us
+  data.videoTimestamp = new Date();
+
+  // keep a reference to the most recent "navdata" object
   navdata = data;
+
+  // entries are \n-terminated
+  navdataLog.write(JSON.stringify(data) + '\n');
 });
+
+/**
+ * Output navdata events to the log file.
+ */
+
+var navdataLogFile = path.resolve(dirname, 'navdata.log');
+var navdataLog = fs.createWriteStream(navdataLogFile);
+
 
 /**
  * Connect to drone's video stream port.
@@ -183,7 +201,7 @@ var videoEncoder = spawn('ffmpeg', [
  * Default = 25, to match the ar.drone h264 video
  */
 
-var navdataFps = 25;
+var navdataFps = 15;
 
 /**
  * Called once the first PaVE frame has been parsed.
@@ -205,7 +223,7 @@ var navdataEncoder = spawn('ffmpeg', [
 );
 
 function render () {
-  if (null == navdata || null == width || null == height) {
+  if (null == navdata || null == navdata.demo || null == width || null == height) {
     debug('render: waiting for "navdata"');
     return;
   }
