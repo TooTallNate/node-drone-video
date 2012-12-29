@@ -24,6 +24,7 @@ process.on('SIGINT', shutdown);
 var isShutdown = false;
 function shutdown () {
   if (isShutdown) return;
+  isShutdown = true;
 
   console.log('\nshutting down...');
 
