@@ -63,6 +63,9 @@ function shutdown () {
   if (navdataEncoder) {
     navdataEncoder.stdin.end();
   }
+
+  // clear shutdown timeout
+  clearTimeout(shutdownTimeout);
 }
 
 /**
@@ -211,10 +214,11 @@ function render () {
 }
 
 /**
- * Collect around "duration" length of video...
+ * Set a timeout to shutdown if "duration" was specified.
  */
 
+var shutdownTimeout;
 if (program.duration) {
   debug('shutting down in %d milliseconds', program.duration);
-  setTimeout(shutdown, program.duration);
+  shutdownTimeout = setTimeout(shutdown, program.duration);
 }
