@@ -12,7 +12,7 @@ var arDrone = require('ar-drone');
 var strftime = require('strftime');
 var program = require('commander');
 var spawn = require('child_process').spawn;
-var debug = require('debug')('drone-joystick');
+var debug = require('debug')('drone-video');
 var PaVEParser = require('ar-drone/lib/video/PaVEParser');
 
 /**
@@ -20,7 +20,11 @@ var PaVEParser = require('ar-drone/lib/video/PaVEParser');
  */
 
 process.on('SIGINT', shutdown);
+
+var isShutdown = false;
 function shutdown () {
+  if (isShutdown) return;
+
   console.log('\nshutting down...');
 
   // XXX: wtf, why doesn't node-ar-drone do this!!?!!
@@ -33,6 +37,11 @@ function shutdown () {
   socket.destroy();
 
   videoEncoder.stdin.end();
+
+  // clean up navdata stuffs
+  clearInterval(navdataInterval);
+  if (navdataEncoder)
+    navdataEncoder.stdin.end();
 }
 
 /**
@@ -55,6 +64,8 @@ fs.mkdirSync(dirname);
  */
 
 var navdata;
+var width;
+var height;
 
 /**
  * Create client connection to the AR.Drone.
@@ -88,8 +99,11 @@ socket.on('error', function (err) {
 
 var parser = new PaVEParser();
 parser.on('data', function (frame) {
-  startNavdata();
   debug('PaVEParser "frame"', frame);
+
+  // set the "width" and "height"
+  width = frame.display_width;
+  height = frame.display_height;
 
   // write to the h264 video file and the mp4 encoder
   videoH264.write(frame.payload);
@@ -118,7 +132,7 @@ var videoH264 = fs.createWriteStream(path.resolve(dirname, 'video.h264'));
  * See: https://gist.github.com/4403443
  */
 
-var videoEncoderStderr = 2;
+var videoEncoderStderr = -1;
 var videoEncoder = spawn('ffmpeg', [
     '-f', 'h264',
     '-analyzeduration', '0',
@@ -130,11 +144,34 @@ var videoEncoder = spawn('ffmpeg', [
 );
 
 /**
+ * Frames per second for the navdata video.
+ * Default = 25, to match the ar.drone h264 video
+ */
+
+var navdataFps = 25;
+
+/**
  * Called once the first PaVE frame has been parsed.
  */
 
-var navdataStarted = false;
-function startNavdata () {
-  if (navdataStarted) return;
-  navdataStarted = true;
+var navdataInterval = setInterval(render, 1000 / navdataFps);
+var navdataEncoder = spawn('ffmpeg', [
+    '-f', 'image2pipe',
+    '-analyzeduration', '0',
+    '-r', navdataFps,
+    '-vcodec', 'png',
+    '-i', '-',
+    '-r', navdataFps,
+    '-vcodec', 'qtrle',
+    '-an',
+    path.resolve(dirname, 'navdata.mov')
+  ],
+  { stdio: [ -1, -1, videoEncoderStderr ] }
+);
+
+function render () {
+  if (!navdata) return debug('render: waiting for "navdata"');
+
+  var buffer = draw(navdata, width, height);
+  navdataEncoder.stdin.write(buffer);
 }
