@@ -15,7 +15,9 @@
   "dependencies": {
     "ar-drone": "~0.0.5",
     "commander": "~1.1.1",
-    "debug": "~0.7.0"
+    "debug": "~0.7.0",
+    "buffy": "~0.0.5",
+    "strftime": "~0.4.7"
   },
   "keywords": [
     "AR.Drone",

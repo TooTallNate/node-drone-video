@@ -4,7 +4,112 @@
  * Module dependencies.
  */
 
+var fs = require('fs');
+var net = require('net');
+var path = require('path');
 var arDrone = require('ar-drone');
+var strftime = require('strftime');
 var program = require('commander');
+var spawn = require('child_process').spawn;
+var Parser = require('../lib/PaVEParser');
 var debug = require('debug')('drone-joystick');
 
+/**
+ * Do a clean shutdown upon Ctrl+C.
+ */
+
+process.on('SIGINT', function () {
+  console.log('shutting down...');
+
+  // XXX: wtf, why doesn't node-ar-drone do this!!?!!
+  clearInterval(client._interval);
+  clearTimeout(client._udpNavdatasStream._timer);
+  client._udpControl.close();
+  client._udpNavdatasStream.destroy();
+
+  // close the socket
+  socket.destroy();
+
+  videoEncoder.stdin.end();
+});
+
+/**
+ * Output dir format.
+ */
+
+var format = 'drone-video-%Y%m%d-%H%M%S';
+
+/**
+ * Ensure output directory exists.
+ * TODO: use node-mkdirp here...
+ */
+
+var dirname = strftime.strftimeUTC(format, new Date());
+fs.mkdirSync(dirname);
+
+/**
+ * The most recent navigation data from the drone.
+ * Used in the metadata video stream image generation.
+ */
+
+var navdata;
+
+/**
+ * Create client connection to the AR.Drone.
+ */
+
+var ip = process.argv[2] || '192.168.1.1';
+var client  = arDrone.createClient({ ip: ip });
+client.config('general:navdata_demo', 'TRUE');
+//console.log('Connecting to drone at %j', ip);
+
+client.on('navdata', function (data) {
+  //console.log(JSON.stringify(data));
+  navdata = data;
+});
+
+/**
+ * Connect to drone's video stream port.
+ */
+
+var port = 5555;
+var socket = net.connect({ host: ip, port: port });
+
+socket.on('connect', function () {
+  console.error('connected to drone video');
+});
+
+socket.on('error', function (err) {
+  console.error('socket "error" event:', err);
+  socket.destroy();
+});
+
+//var parser = new Parser();
+//parser.on('data', function (b) {
+  //console.error('%d h264 bytes', b.length);
+//});
+//socket.pipe(parser);
+//parser.pipe(process.stdout);
+
+/**
+ * Save the raw PaVE video stream untouched as "video.raw".
+ */
+
+var videoRaw = fs.createWriteStream(path.resolve(dirname, 'video.raw'));
+socket.pipe(videoRaw);
+
+/**
+ * Encode the "video.mp4" file.
+ */
+
+var videoEncoder = spawn('ffmpeg', [
+    '-f', 'h264',
+    '-i', '-',
+    '-f', 'mp4',
+    '-vcodec', 'copy',
+    '-an',
+    path.resolve(dirname, 'video.mp4')
+  ],
+  { stdio: [ -1, -1, /*2*/-1 ] }
+);
+socket.pipe(videoEncoder.stdin);
