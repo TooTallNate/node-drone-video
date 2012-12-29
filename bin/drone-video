@@ -51,6 +51,9 @@ function shutdown () {
   client._udpControl.close();
   client._udpNavdatasStream.destroy();
 
+  // close the "navdata.log" file
+  navdataLog.end();
+
   // close the socket
   socket.destroy();
 
@@ -98,6 +101,10 @@ console.log('Connecting to drone at %j', program.ip);
  */
 
 client.config('general:navdata_demo', 'TRUE');
+
+/**
+ * Write out "navdata" events as JSON lines in the "navdata.log" file.
+ */
 
 client.on('navdata', function (data) {
   // save a timestamp for us
@@ -171,6 +178,7 @@ var videoH264 = fs.createWriteStream(path.resolve(dirname, 'video.h264'));
 var ffplay = spawn('ffplay', [
     '-f', 'h264',
     '-analyzeduration', '0',
+    '-autoexit',
     '-'
   ]
 );
