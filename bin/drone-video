@@ -197,6 +197,7 @@ var videoEncoderStderr = -1;
 var videoEncoder = spawn('ffmpeg', [
     '-f', 'h264',
     '-analyzeduration', '0',
+    '-r', '29.97', // force 30fps?
     '-i', '-',
     '-an',
     path.resolve(dirname, 'video.m4v')
