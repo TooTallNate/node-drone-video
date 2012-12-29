@@ -101,7 +101,7 @@ client.config('general:navdata_demo', 'TRUE');
 
 client.on('navdata', function (data) {
   // save a timestamp for us
-  data.videoTimestamp = new Date();
+  data.videoTimestamp = Date.now();
 
   // keep a reference to the most recent "navdata" object
   navdata = data;
