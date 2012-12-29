@@ -62,6 +62,7 @@ function shutdown () {
   clearInterval(navdataInterval);
   if (navdataEncoder) {
     navdataEncoder.stdin.end();
+    navdataEncoder = null;
   }
 
   // clear shutdown timeout
@@ -212,6 +213,7 @@ function render () {
   debug('draw()ing navdata (%d x %d)', width, height);
   var buffer = draw(navdata, width, height, function (err, buffer) {
     if (err) throw err;
+    if (!navdataEncoder) return;
     navdataEncoder.stdin.write(buffer);
   });
 }
