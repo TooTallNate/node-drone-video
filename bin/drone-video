@@ -37,6 +37,7 @@ function shutdown () {
   // close the socket
   socket.destroy();
 
+  ffplay.stdin.end();
   videoEncoder.stdin.end();
 
   // clean up navdata stuffs
@@ -108,6 +109,7 @@ parser.on('data', function (frame) {
 
   // write to the h264 video file and the mp4 encoder
   videoH264.write(frame.payload);
+  ffplay.stdin.write(frame.payload);
   videoEncoder.stdin.write(frame.payload);
 });
 socket.pipe(parser);
@@ -124,7 +126,22 @@ socket.pipe(videoRaw);
  * See the `parser` "data" event.
  */
 
+var videoH264File = path.resolve(dirname, 'video.h264');
 var videoH264 = fs.createWriteStream(path.resolve(dirname, 'video.h264'));
+
+/**
+ * Spawn "ffplay" to play the h264 stream.
+ */
+
+var ffplay = spawn('ffplay', [
+    '-f', 'h264',
+    '-analyzeduration', '0',
+    '-'
+  ]
+);
+ffplay.on('exit', function (code, signal) {
+  shutdown();
+});
 
 /**
  * Encode the "video.m4v" file.
@@ -162,7 +179,7 @@ var navdataEncoder = spawn('ffmpeg', [
     '-r', navdataFps,
     '-vcodec', 'png',
     '-i', '-',
-    '-r', navdataFps,
+    //'-r', navdataFps,
     '-vcodec', 'qtrle',
     '-an',
     path.resolve(dirname, 'navdata.mov')
