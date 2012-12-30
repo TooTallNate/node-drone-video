@@ -5,6 +5,7 @@ Save down AR.Drone video streams to your filesystem with associated navdata vide
 streams. Splicing and editing the raw stream and navdata stream is left up to you
 to do in Final Cut or whatever your preferred video editor is.
 
+
 Installation
 ------------
 
@@ -20,6 +21,7 @@ You can install the `drone-video` program with `npm`:
 ``` bash
 $ npm install -g drone-video
 ```
+
 
 Usage
 -----
@@ -42,3 +44,22 @@ and metadata files into:
  * `video.h264` - The raw h264 video stream with the PaVE frame wrapper removed
  * `video.m4v` - A compressed version of the raw h264 feed compatible with most video players
  * `video.PaVE` - The raw PaVe framed video feed dumped directly from the AR.Drone's video port
+
+
+Video Splicing
+--------------
+
+So the `drone-video` program outputs a directory with distinct `video.m4v` and
+`navdata.mov` files. You most likely want to splice the two together so that you
+can upload the resulting video to YouTube or whatever. You can do this in your
+preferred video editing program.
+
+A good `ffmpeg` command to splice the two videos together is:
+
+``` bash
+$ ffmpeg -i video.m4v -vf "movie=navdata.mov[clip2]; [in][clip2] overlay=0:0 [out]" -sameq overlay.m4v
+```
+
+An example of the produced overlay video can be seen here:
+
+[![](http://f.cl.ly/items/0z1d2F1i2Z3p2c3o0305/overlay.png)](http://youtu.be/kETrx7npmeA)
